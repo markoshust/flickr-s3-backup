@@ -1,7 +1,7 @@
 import flickrapi
 import urllib
 from boto.s3.key import Key
-from boto.s3 import Connection
+from boto.s3.connection import S3Connection
 import os
 import sys
 
@@ -55,7 +55,7 @@ def makeFlickrCallback():
 
     return callbackFunc
 
-def addPhoto(photo):
+def addPhoto(photo, setTitle):
     url = flickr.photos_getSizes(photo_id = photo.attrib['id'])
     realUrl = None
     for url in url.find('sizes').findall('size'):
@@ -63,7 +63,7 @@ def addPhoto(photo):
             realUrl = url.attrib['source']
 
     if realUrl:
-        keyId = photo.attrib['id'] + ".jpg"
+        keyId = setTitle + "/" + photo.attrib['id'] + ".jpg"
         dataKeyId = keyId + ".metadata"
 
         # Upload photo
@@ -107,17 +107,18 @@ userId = userIdResponse.find('user').attrib['id']
 
 sets = flickr.photosets_getList(user_id=userId).find('photosets')
 for set in sets.findall('photoset'):
-    print "Found set: ", set.find("title").text
+    setTitle = set.find("title").text
+    print "Found set: ", setTitle
     print "Fetching photos...",
     photos = flickr.photosets_getPhotos(photoset_id = set.attrib['id']).find('photoset')
     print photos.attrib['total'], "found"
 
     for photo in photos.findall('photo'):
-        addPhoto(photo)
+        addPhoto(photo, setTitle)
 
 # add photos out of sets
 print "Transferring photos outside of any set..."
 photos = flickr.photos_getNotInSet().find('photos')
 for photo in photos:
-    addPhoto(photo)
+    addPhoto(photo, "Photos Not In Sets")
 
